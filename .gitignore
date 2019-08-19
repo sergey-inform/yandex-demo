@@ -1,0 +1,11 @@
+__pycache__/
+
+*.py[cod]
+*.so
+
+.env/
+env/
+
+# Flask stuff:
+instance/
+.webassets-cache
