@@ -21,7 +21,7 @@ citizen_definitions = {
             'name': {'$ref': '#definitions/string'},
             'birth_date': {
                 'type': 'string',
-                'pattern': "^[0-9]{2}\.[0-9]{2}\.[0-9]{4}$"
+                'pattern': "^[0-9]{2}.[0-9]{2}.[0-9]{4}$"
                 },
             'gender': {
                 'type': 'string',

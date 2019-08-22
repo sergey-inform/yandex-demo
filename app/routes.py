@@ -8,7 +8,8 @@ from werkzeug.exceptions import abort
 
 
 from app.db import get_db
-from schema_definitions import citizen_definitions
+from app.schema_definitions import citizen_definitions
+
 #from schema_validate import expect_valid_json
 #from schema_definitions import imports_schema, patch_schema
 
