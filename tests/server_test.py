@@ -15,8 +15,6 @@ def socket():
     yield _sock
     _sock.close()
 
-
-
 def test_server_connect(socket, Server):
     socket.connect(Server.host_port)
     assert socket

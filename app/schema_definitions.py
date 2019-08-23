@@ -32,7 +32,32 @@ citizen_definitions = {
                 'items': {'$ref': '#definitions/citizen/properties/citizen_id'},
                 'uniqueItems': True
                 }
-        },
+            },
        'additionalProperties': False,
+        }
     }
-}
+
+imports_schema = {
+    'definitions': citizen_definitions,
+    'type': 'object',
+    'properties': {
+        'citizens': {
+            'type': 'array',
+            'items': { 
+                'allOf': [
+                    {'$ref': '#/definitions/citizen'},
+                    {'minProperties': 9}  # Require all properties
+                    ]
+                }
+            },
+        },
+    'additionalProperties': False,
+    'required':  ['citizens']
+    }
+
+
+patch_schema = {
+    'definitions': citizen_definitions,
+    '$ref': '#/definitions/citizen',
+    }
+
