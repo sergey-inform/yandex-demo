@@ -11,6 +11,7 @@ from app.schema_definitions import imports_schema, patch_schema
 
 logger = logging.getLogger('app')
 
+from datetime import datetime
 
 @app.route('/test', methods=['GET',])
 def test():
@@ -22,10 +23,22 @@ def test():
     return 'OK'
 
 
+pgsql_date =  lambda s: datetime.strptime(s,"%d.%m.%Y").strftime("%Y-%m-%d")
+
 @app.route('/imports', methods= ['POST',])
 @expects_valid_json(imports_schema, force=True)
 def imports():
-    data = g.data
+    citizens = g.data['citizens']
+    
+    # convert dates   
+    try:
+        for _ in citizens:
+            d = _['birth_date']
+            _['birth_date'] = pgsql_date(d)
+    except ValueError:
+        return "wrong birth_date: {:.42}".format(d), 400
+   
+    logger.warn(citizens)
     resp_ok = {"data": {"import_id" : 1}}
     return jsonify(resp_ok), 201
 
@@ -49,7 +62,5 @@ def birthdays(import_id):
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age', methods=['GET', ])
 def agestats(import_id):
     pass
-
-
 
 
