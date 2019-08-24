@@ -29,7 +29,7 @@ def test():
         abort(404)
 
 
-def pgsql_date(s): return datetime.strptime(s,"%d.%m.%Y").strftime("%Y-%m-%d")
+def parse_date(s): return datetime.strptime(s,"%d.%m.%Y")
 
 @app.route('/imports', methods= ['POST',])
 @expects_valid_json(imports_schema, force=True)
@@ -42,7 +42,6 @@ def imports():
     
     filtered = ('street', 'building', 'apartment', 'name')  #store in `fields`
     
-    print("before filter", flush = True)
     for c in citizens: 
         citizen_id = c['citizen_id']
         
@@ -51,7 +50,7 @@ def imports():
         
         # Convert `birth_date` to postgres format, check date is valid
         try:
-            birth_date =  pgsql_date(c['birth_date'])
+            birth_date =  parse_date(c['birth_date'])
         except ValueError:
             return "wrong birth_date: {:.42}".format(date), 400
        
@@ -68,10 +67,11 @@ def imports():
     
     # Check relatives 
     # NB: the `citizen` can be relative to itself, so not '>' but '>='!
-
+    
     def isle(x): return x[0] <= x[1]
     def swap(x): return (x[1], x[0])
 
+    # get little endian pairs and reversed big endian pairs
     le = filter(isle, relatives_pairs)  # [(a,b),..]
     be = filter(isle, map(swap, relatives_pairs))  #((b,a),..) --> ((a,b),..)
 
@@ -116,7 +116,7 @@ def imports():
                         )
     db.commit()
 
-    resp_ok = {"data": {"import_id" : 1}}
+    resp_ok = {"data": {"import_id" : import_id}}
     return jsonify(resp_ok), 201
 
 
