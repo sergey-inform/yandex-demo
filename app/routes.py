@@ -99,7 +99,7 @@ def imports():
 
     execute_values( cur,
                     'INSERT INTO Citizens' \
-                    ' (import_id, id, town, birth_date, gender, fields)' \
+                    ' (import_id, citizen_id, town, birth_date, gender, fields)' \
                     ' VALUES %s',
                     prepared,
                     template = template_citizens,
@@ -130,8 +130,16 @@ def patch(import_id):
 
 @app.route('/imports/<int:import_id>/citizens', methods=['GET',])
 def citizens(import_id):
-    pass
+    db = get_db()
+    cur = db.cursor()
 
+    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
+    
+    cur.fetch()
+
+
+
+    
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET', ])
 def birthdays(import_id):
