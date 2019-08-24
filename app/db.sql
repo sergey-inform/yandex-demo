@@ -46,7 +46,7 @@ CREATE TABLE citizen_fields(
 );
 
 CREATE OR REPLACE VIEW Citizens_fields AS
-SELECT C.import_id, C.citizen_id, town, birth_date, gender, f.* 
+SELECT C.import_id, C.citizen_id, town, to_char(birth_date, 'DD.MM.YYYY') as birth_date, gender, f.* 
 from Citizens as C
 , JSON_POPULATE_RECORD(NULL::citizen_fields, C.fields) f;
 
@@ -63,7 +63,7 @@ GROUP BY sub.import_id, sub.citizen_id;
 
 
 CREATE OR REPLACE VIEW Citizens_view AS
-SELECT CF.*, R.relatives
+SELECT CF.*, COALESCE(R.relatives, ARRAY[]::integer[]) as relatives
 FROM Citizens_fields CF
 LEFT JOIN Relatives_agg AS R
 ON CF.citizen_id = R.citizen_id

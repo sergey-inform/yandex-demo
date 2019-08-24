@@ -1,8 +1,7 @@
 import logging
 from datetime import datetime
-from json import dumps as jsondumps
 
-from flask import (g, request, jsonify, abort)
+from flask import (g, request, jsonify, abort, json)
 from flask import current_app as app
 
 from flask_expects_json import expects_json
@@ -14,7 +13,7 @@ from app.schema_definitions import imports_schema, patch_schema
 logger = logging.getLogger('app')
 
 
-from psycopg2.extras import execute_values  #
+from psycopg2.extras import execute_values, DictCursor  #
 
 
 @app.route('/test', methods=['GET',])
@@ -46,7 +45,7 @@ def imports():
         citizen_id = c['citizen_id']
         
         # Put filtered to `fields`
-        fields = jsondumps( { _: c[_] for _ in filtered}, ensure_ascii=False)
+        fields = json.dumps( { _: c[_] for _ in filtered}, ensure_ascii=False)
         
         # Convert `birth_date` to postgres format, check date is valid
         try:
@@ -120,7 +119,8 @@ def imports():
     return jsonify(resp_ok), 201
 
 
-@app.route('/imports/<int:import_id>/citizens/<int:citizen_id>', methods=['PATCH', ])
+@app.route('/imports/<int:import_id>/citizens/<int:citizen_id>', 
+            methods=['PATCH', ])
 @expects_valid_json(patch_schema, force=True)
 def patch(import_id):
 
@@ -131,12 +131,23 @@ def patch(import_id):
 @app.route('/imports/<int:import_id>/citizens', methods=['GET',])
 def citizens(import_id):
     db = get_db()
-    cur = db.cursor()
+    cur = db.cursor(cursor_factory=DictCursor)
+
+    fields = ('citizen_id', 'town', 'street', 'building', 'apartment',
+                'name', 'birth_date', 'gender', 'relatives');
 
     cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
+    res = cur.fetchone()
+    if not res:
+        abort(404, 'No such import_id')
     
-    cur.fetch()
+    cur.execute('SELECT * FROM Citizens_view WHERE import_id = %s',
+                [import_id])
 
+    citizens = cur.fetchall()
+    res = [ {k:_[k] for k in fields} for _ in citizens]
+
+    return json.dumps({'data': res}, ensure_ascii=False, sort_keys=False), 200
 
 
     
