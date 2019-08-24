@@ -11,7 +11,13 @@ def create_app(test_config=None):
     app = Flask(__name__) #FIXME: , instance_relative_config=True)
     
     app.config.from_mapping(
-        HEHE='bebe',
+        DB = {
+            "host": "localhost",
+            "port": 5432,
+            "user": "test",
+            "password": "secret",
+            "dbname": "test",
+            }
         )
 
     if test_config:
@@ -32,7 +38,7 @@ def create_app(test_config=None):
     with app.app_context():
         from . import routes
 
-#    from app import db
-#    db.init_app(app)
+    from app import db
+    db.init_app(app)
 
     return app

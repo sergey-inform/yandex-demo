@@ -4,6 +4,9 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
+import psycopg2
+import logging
+    
 
 def get_db():
     """Connect to the application's configured database. The connection
@@ -11,13 +14,19 @@ def get_db():
     again.
     """
     if 'db' not in g:
-        pass
-        #TODO: connect to DB
+        dbconfig = current_app.config['DB']
+        try:
+            g.db = psycopg2.connect(**config)
+        except psycopg2.DatabaseError as e:
+            logging.error(e)
 
+        finally:
+            logging.info('db connected')
+            
     return g.db
 
 
-def close_db():
+def close_db(e=None):
     """If this request connected to the database, close the connection.
     """
     db = g.pop('db', None)
@@ -28,6 +37,7 @@ def close_db():
 def init_db():
     """Clear existing data and create new tables."""
     db = get_db()
+
 #    with current_app.open_resource('schema.sql') as f:
 #        db.executescript(f.read().decode('utf8'))
 
