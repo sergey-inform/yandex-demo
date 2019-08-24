@@ -17,7 +17,6 @@ citizen_definitions = {
                 'type' : 'integer',
                 'minimum': 0
                 },
-            'building': {'$ref': '#definitions/string'},
             'name': {'$ref': '#definitions/string'},
             'birth_date': {
                 'type': 'string',
