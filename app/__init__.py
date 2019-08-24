@@ -11,12 +11,13 @@ def create_app(test_config=None):
     app = Flask(__name__) #FIXME: , instance_relative_config=True)
     
     app.config.from_mapping(
-        DB = {
+        DB_URL="postgresql://demo@localhost:5432/citizens",
+        DB_CONF = {
             "host": "localhost",
             "port": 5432,
-            "user": "test",
-            "password": "secret",
-            "dbname": "test",
+            "user": "demo",
+            "password": "Q2da0wEn9",
+            "dbname": "citizens",
             }
         )
 
