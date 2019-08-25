@@ -40,9 +40,9 @@ CREATE TABLE Relatives (
 	
 	,PRIMARY KEY (import_id, low, high)
 	,FOREIGN KEY (import_id) REFERENCES Imports(id) ON DELETE CASCADE
-/*	,FOREIGN KEY (import_id, low ) REFERENCES Citizens(import_id, citizen_id) ON DELETE CASCADE
+	,FOREIGN KEY (import_id, low ) REFERENCES Citizens(import_id, citizen_id) ON DELETE CASCADE
 	,FOREIGN KEY (import_id, high) REFERENCES Citizens(import_id, citizen_id) ON DELETE CASCADE
-*/
+
 );
 
 
