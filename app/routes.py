@@ -5,8 +5,6 @@ from itertools import groupby
 from flask import (g, request, abort, json)
 from flask import current_app as app
 
-from flask_expects_json import expects_json
-
 from app.db import get_db
 from app.schema_validate import expects_valid_json
 from app.schema_definitions import imports_schema, patch_schema
@@ -38,7 +36,7 @@ def parse_date(s):
 
 # Disclaimer: 
 # When you think that this code is shitty, 
-# keep in mind that it was written in a day. 
+# keep in mind that it was written in hurry. 
 #
 
 @app.route('/imports', methods= ['POST',])
