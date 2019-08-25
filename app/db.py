@@ -41,6 +41,7 @@ def init_db():
         cursor=db.cursor()
         cursor.execute(f.read().decode('utf8'))
         db.commit()
+        logging.info("db initialized")
 
 
 @click.command('init-db')

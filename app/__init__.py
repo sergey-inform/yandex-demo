@@ -11,21 +11,21 @@ def create_app(test_config=None):
     app = Flask(__name__) #FIXME: , instance_relative_config=True)
     
     app.config.from_mapping(
-        DB_URL="postgresql://demo@localhost:5432/citizens",
+#       DB_URL="postgresql://demo@localhost:5432/citizens", #TODO:add parsing
         DB_CONF = {
-            "host": "localhost",
-            "port": 5432,
-            "user": "demo",
-            "password": "Q2da0wEn9",
-            "dbname": "citizens",
-            }
+           "host": "localhost",
+           "port": 5432,
+           "user": "test",
+           "password": "secret",
+           "dbname": "test",
+        }
         )
 
     if test_config:
         app.config.update(test_config)
 
     else:
-        app.config.from_pyfile('config.py') #TODO: , silent=True
+        app.config.from_pyfile('config.py') #FIXME: , silent=True
 
     try:
         os.makedirs(app.instance_path)

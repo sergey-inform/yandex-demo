@@ -127,6 +127,7 @@ def imports():
 @expects_valid_json(patch_schema, force=True)
 def patch(import_id):
     data = g.data
+    
     print(data)
 
     #TODO: 400 if set citizen_id
