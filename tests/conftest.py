@@ -2,16 +2,22 @@ import os
 import pytest
 
 from app import create_app
+from app.db import get_db, init_db
 
+#inspired by 
+#https://github.com/pallets/flask/blob/1.0.4/examples/tutorial/tests/conftest.py
 
 @pytest.fixture(scope='session')
 def app():
     """Create and configure a new app instance for each test."""
-    _app = create_app({"TESTING": True, 'DEBUG': True})
+    _app = create_app( {"TESTING": True, 'DEBUG': True})
 
-    #with _app.app_context():
-    #    a = 1
-    return _app
+    with _app.app_context():
+        init_db()
+        
+    yield _app
+
+    #TODO: cleanup
 
 
 @pytest.fixture
@@ -20,3 +26,7 @@ def client(app):
     return app.test_client()
 
 
+@pytest.fixture
+def runner(app):
+    """A test runner for the app's Click commands."""
+    return app.test_cli_runner()

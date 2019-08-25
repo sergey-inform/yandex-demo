@@ -9,9 +9,9 @@ with open(os.path.join(dir_path, "valid_import.json"), 'r') as f:
     valid_json = f.read()
 
 
+# should work with any content_type
 @pytest.mark.parametrize("_type, _code", 
         [("text/plain", 201), ("application/json", 201)])
-
 def test_valid(client, _type, _code):
     """ Check valid json from specification.
     """
@@ -22,4 +22,5 @@ def test_valid(client, _type, _code):
     except:
         logging.info(r.data.decode())
         raise
-    
+
+
