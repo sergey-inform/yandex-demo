@@ -10,7 +10,7 @@
       "name":  "Иванов  Иван  Иванович",
       "birth_date":  "26.12.1986",
       "gender":  "male",
-      "relatives":  [2]
+      "relatives":  [2,3]
     },
     {
       "citizen_id":  2,
@@ -32,7 +32,7 @@
       "name":  "Романова  Мария  Леонидовна",
       "birth_date":  "23.11.1986",
       "gender":  "female",
-      "relatives":  []
+      "relatives":  [1]
     }
   ]
 }

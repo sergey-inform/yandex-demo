@@ -86,7 +86,7 @@ AND CF.import_id = R.import_id;
 
 
 /* Birthdays (we exploit Merge Join here) */
-CREATE OR REPLACE VIEW Birthdays AS
+CREATE OR REPLACE VIEW Birthdays_view AS
 SELECT R.import_id, C."month", R.citizen_id, COUNT(*) AS presents
 FROM
   (SELECT import_id, citizen_id, rel

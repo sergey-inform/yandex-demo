@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
+from itertools import groupby
 
-from flask import (g, request, jsonify, abort, json)
+from flask import (g, request, abort, json)
 from flask import current_app as app
 
 from flask_expects_json import expects_json
@@ -15,6 +16,8 @@ logger = logging.getLogger('app')
 
 from psycopg2.extras import execute_values, DictCursor  #
 
+def jsonify(x, ensure_ascii=False, sort_keys=False):  # change defaults
+    return json.dumps(x, ensure_ascii=ensure_ascii, sort_keys=sort_keys)
 
 @app.route('/test', methods=['GET',])
 def test():
@@ -123,6 +126,8 @@ def imports():
             methods=['PATCH', ])
 @expects_valid_json(patch_schema, force=True)
 def patch(import_id):
+    data = g.data
+    print(data)
 
     #TODO: 400 if set citizen_id
     pass
@@ -144,17 +149,36 @@ def citizens(import_id):
     cur.execute('SELECT * FROM Citizens_view WHERE import_id = %s',
                 [import_id])
 
-    citizens = cur.fetchall()
-    res = [ {k:_[k] for k in fields} for _ in citizens]
+    data = cur.fetchall()
+    citizens = [ {k:_[k] for k in fields} for _ in data]
 
-    return json.dumps({'data': res}, ensure_ascii=False, sort_keys=False), 200
+    return jsonify({'data': citizens}), 200
 
-
-    
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET', ])
 def birthdays(import_id):
-    pass
+    db = get_db()
+    cur = db.cursor(cursor_factory=DictCursor)
+
+    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
+    res = cur.fetchone()
+    if not res:
+        abort(404, 'No such import_id')
+    
+    cur.execute('SELECT month, citizen_id, presents from Birthdays_view'
+                ' WHERE import_id = %s', [import_id])
+
+    data = cur.fetchall()
+
+    birthdays = {}
+    #group data by month
+    for k, g in groupby(data, lambda x: x['month']):
+        month = str(int(k))
+        values =[{"citizen_id": _['citizen_id'], "presents": _['presents']}
+                    for _ in g]
+        birthdays[month] = values
+
+    return jsonify({'data': birthdays}, 200)
 
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age', methods=['GET', ])
