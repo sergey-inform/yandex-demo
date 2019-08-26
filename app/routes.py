@@ -21,73 +21,90 @@ def jsonify(x, ensure_ascii=False, sort_keys=False,**kvargs):  # change defaults
 def parse_date(s):
     return datetime.strptime(s,"%d.%m.%Y")
 
+
+imports = Blueprint('imports', __name__, 
+                        url_prefix='/imports/<int:import_id>')
+
 # Disclaimer: 
 # When you think this code is shitty in some places, 
 # consider that it was written in hurry. 
 
-imports = Blueprint('imports', __name__, 
-                        url_prefix='/imports/<int:import_id>')
+#TODO: should be moved to separate file but left here for simplicity.
+
+def relaitves_filter( rel_pairs):
+    """ Check relatives integrity.
+    
+        Returns: list of little-endian relative pairs (x[0]<=x[1])
+            [tuple(citizen_id, citizen_id),...]
+    """
+    # NB: the `citizen` can be relative to itself, so not '>' but '>='!
+    def isle(x): return x[0] <= x[1]
+    def swap(x): return (x[1], x[0])
+
+    # get little endian pairs and reversed big endian pairs
+    le = list(filter(isle, rel_pairs))  # [(a,b),..]
+    be = list(filter(isle, map(swap, rel_pairs)))  #[(b,a),..) --> ((a,b),..]
+
+    if le and set(le) != set(be):
+        sample = set(le).symmetric_difference(set(be)).pop()
+        raise ValueError("inconsistent relatives pairs {}".format(sample))
+    
+    return le
+
+
+def citizens_prepare( citizens, 
+                        filtered= ('street', 'building', 'apartment', 'name')
+                        ):
+    """ Prepare semantically valid import for insertion to database.
+        
+        Raises: ValueError on malformed data.
+        Returns: ([{citizen},...], [(rel_le),...])
+    """
+    ret = []
+    pairs = []
+    now_date = datetime.now()
+    
+    for c in citizens: 
+        citizen_id = c['citizen_id']
+        
+        # Put filtered values as JSON to `fields` column; see README
+        fields = jsonify({ _: c[_] for _ in filtered})
+        
+        # Convert `birth_date` to postgres date format and check date is valid
+        birth_date = parse_date(c['birth_date'])
+        if birth_date >= now_date:
+            raise ValueError('birth_date in future: {}'.format(birth_date))
+
+        ret.append( { 
+            'citizen_id': citizen_id,
+            'birth_date': birth_date,
+            'town': c['town'],
+            'gender': c['gender'],
+            'fields': fields,
+            })
+                
+        # Prepare relatives as tuples (citizen, relative)
+        pairs.extend( (citizen_id, _) for _ in c['relatives'] )
+    
+    return ret, relaitves_filter(pairs)
 
 @app.route('/imports', methods= ['POST',])
 @expects_valid_json(imports_schema, force=True)
 def imports_():
     citizens = g.data['citizens']
-
-    # Prepare for insert
-    prepared = []
-    relatives_pairs = []
     
-    filtered = ('street', 'building', 'apartment', 'name')  #store in `fields`
-    
-    now_date = datetime.now()
-
-    for c in citizens: 
-        citizen_id = c['citizen_id']
+    # First prepare for insert
+    try: 
+        prepared, relatives = citizens_prepare(citizens)
         
-        # Put filtered to `fields`
-        fields = json.dumps( { _: c[_] for _ in filtered}, ensure_ascii=False)
-        
-        # Convert `birth_date` to postgres format, check date is valid
-        try:
-            birth_date =  parse_date(c['birth_date'])
-            if birth_date >= now_date:
-                raise ValueError('birth_date in future')
-        
-        except ValueError:
-            return "wrong birth_date: {}".format(birth_date), 400
-       
-        # Prepare relatives 
-        relatives_pairs.extend( (citizen_id, rel) for rel in c['relatives'] )
-        
-        prepared.append( { 
-                'citizen_id': citizen_id,
-                'birth_date': birth_date,
-                'town': c['town'],
-                'gender': c['gender'],
-                'fields': fields,
-                })
-    
-    # Check relatives 
-    # NB: the `citizen` can be relative to itself, so not '>' but '>='!
-    
-    def isle(x): return x[0] <= x[1]
-    def swap(x): return (x[1], x[0])
-
-    # get little endian pairs and reversed big endian pairs
-    le = filter(isle, relatives_pairs)  # [(a,b),..]
-    be = filter(isle, map(swap, relatives_pairs))  #((b,a),..) --> ((a,b),..)
-
-    relatives = list(le)
-
-    if relatives:
-        if set(relatives) != set(be):
-            abort(400, "inconsistent relatives pairs")
+    except ValueError as e: 
+        return str(e), 400
     
     # Insert to db
     db = get_db()
     cur = db.cursor()
 
-    shard = ''  #TODO: implement in-app sharding if necessary
+    shard = ''  #TODO: implement in-app sharding if necessary, see README
 
     # Imports
     cur.execute('INSERT INTO Imports (shard)'
@@ -121,7 +138,7 @@ def imports_():
 
     resp_ok = {"data": {"import_id" : import_id}}
     return jsonify(resp_ok), 201
-
+    
 
 @imports.url_value_preprocessor
 def check_import_id(endpoint, values):
@@ -143,7 +160,7 @@ def patch(citizen_id):
     import_id = g.import_id 
     
     if 'citizen_id' in data:
-        abort(400, "citizen_id can't be changed")
+        abort(400, "citizen_id can't be changed")  # according to spec.
 
     db = get_db()
     cur = db.cursor(cursor_factory=DictCursor)
@@ -158,7 +175,7 @@ def patch(citizen_id):
     citizen = dict(r)
 
     columns  = ('town', 'birth_date', 'gender') 
-    filtered = ('street', 'building', 'apartment', 'name')  #store in `fields`
+    filtered = ('street', 'building', 'apartment', 'name')  # store in `fields`
 
     # Update `citizen` columns
     columns_update = { k: data[k] for k in columns
@@ -166,7 +183,6 @@ def patch(citizen_id):
     # Update `citizen` fields
     fields_update =  { k: data[k] for k in filtered
                     if k in data and citizen[k] != data[k] }
-    
     # Prepare `citizen` relatives
     rel_citizen = set(citizen['relatives'])
     rel_data = set(data['relatives']) if 'relatives' in data else set()
@@ -175,17 +191,14 @@ def patch(citizen_id):
     rel_ins_pairs = [sorted((citizen_id, _)) for _ in rel_data - rel_citizen]
     
     placeholders = {
-                **columns_update,
-                'fields': json.dumps(fields_update or {},
-                                        ensure_ascii=False), 
-                'import_id': import_id,
-                'citizen_id': citizen_id,
-                'rel_del': tuple(rel_del), 
-            }
-
-    # Update `citizen` columns and fields
-    if columns_update or fields_update:
-
+                    **columns_update,
+                    'fields': jsonify( fields_update or {} ), 
+                    'import_id': import_id,
+                    'citizen_id': citizen_id,
+                    'rel_del': tuple(rel_del), 
+                    }
+    
+    if columns_update or fields_update:  # Update `citizen` columns and fields
         sql = cur.mogrify('UPDATE Citizens SET ' + \
                     ''.join( ('{} = %({})s, '.format(k,k) 
                             for k in columns_update.keys()) ) + \
@@ -194,12 +207,10 @@ def patch(citizen_id):
                     ' AND citizen_id = %(citizen_id)s',
                     placeholders)
 
-#        logger.info(sql.decode())
+        #logger.info(sql.decode())
         cur.execute(sql)
 
-    # Update `citizen` relatives
-    
-    if placeholders['rel_del']:
+    if placeholders['rel_del']: # Delete `citizen` relatives
         sql = cur.mogrify('DELETE from Relatives WHERE'
                     ' import_id = %(import_id)s'
                     ' AND ('
@@ -209,11 +220,11 @@ def patch(citizen_id):
                     placeholders
                     )
 
-#        logger.info(sql.decode())
+        #logger.info(sql.decode())
         cur.execute(sql)
     
     try:
-        if rel_ins_pairs:
+        if rel_ins_pairs: # Create new `citizen` relatives
             for low, high in rel_ins_pairs:
                 cur.execute('INSERT INTO Relatives' \
                             ' (import_id, low, high)' \
@@ -221,16 +232,16 @@ def patch(citizen_id):
                             (import_id, low, high)
                             )
     except ForeignKeyViolation:
-        return 'corresponging citizen_id does not exist', 400
+        return 'citizen with such id does not exist', 400
    
     cur.execute('SELECT * FROM Citizens_view'
-                 ' WHERE import_id = %s and citizen_id = %s',
-                    [import_id, citizen_id])
+                 ' WHERE import_id = %s and citizen_id = %s'
+                ,[import_id, citizen_id])
     r = cur.fetchone()
     if not r:
         abort(404, 'No citizen with citizen_id={:d}'.format(citizen_id))
         
-    db.commit()
+    db.commit()  # manually commit db transaction
     
     citizen = dict(r)
     citizen.pop('import_id')  # remove 'import_id' fields according to spec.
@@ -336,8 +347,10 @@ def towns_percentile_age():
     data = []
      
     for r in ret:
-        # Since numpy.percentile finds percentile roughly, unfold entire array
-        # and calculate wrong values instead of calculating precise ones
+        # Since numpy.percentile finds percentiles roughly, 
+        # we have to unfold entire array and calculate 
+        # wrong percentiles with numpy.percentile
+        # instead of calculating precise ones
         # on hisogram `age_count`, wich we already have.
 
         unfold = []
@@ -347,9 +360,9 @@ def towns_percentile_age():
         vals = { k: np.percentile(unfold, v) 
                     for k,v in percentiles.items()}
         
-        data.append( { 'town': r['town'], ** vals })
+        data.append( {'town': r['town'], ** vals })
 
-    return jsonify({'data': data}, indent=2) , 200
+    return jsonify({'data': data}, indent=2), 200
 
 
 @app.route('/test', methods=['GET',])

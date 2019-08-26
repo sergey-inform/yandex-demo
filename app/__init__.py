@@ -34,8 +34,8 @@ def create_app(test_config=None):
 
     @app.route('/ping')  # undocumented API functionality ;)
     def ping():
-        logging.warn('ping')
-        return 'pong'
+        logging.warning('ping')
+        return 'pong', 200
     
     with app.app_context():
         from . import routes
