@@ -35,9 +35,9 @@ def parse_date(s):
 
 
 # Disclaimer: 
-# When you think that this code is shitty, 
+# When you think this code is shitty in some places, 
 # keep in mind that it was written in hurry. 
-#
+# Poor excuse, but...
 
 @app.route('/imports', methods= ['POST',])
 @expects_valid_json(imports_schema, force=True)
