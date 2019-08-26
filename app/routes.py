@@ -279,7 +279,7 @@ def birthdays(import_id):
 
     data = cur.fetchall()
 
-    birthdays = {}
+    birthdays = {str(m):[] for m in range(1,13) }  # 12 months
     #group data by month
     for k, g in groupby(data, lambda x: x['month']):
         month = str(int(k))
