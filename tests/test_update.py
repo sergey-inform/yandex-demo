@@ -78,7 +78,6 @@ def test_patch(client,):
     logging.debug(r.data.decode())
     
     #patch check values updated
-    
 
 
 
