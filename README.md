@@ -5,7 +5,7 @@ Demo task for Yandex Backend School Contest '19.
   
 ## Что сделано
 - [x] JSON-API на Flask, выполненное согласно [ТЗ](./TASK.pdf)
-- [x] фильтрация запросов к API через Jsonschema
+- [x] фильтрация запросов к API через fastjsonschema
 - [x] бэкенд в postgres c psycopg2, без ORM.
 - [x] генератор фейковых данных c Fake
 - [x] некоторые тесты с Pytest
