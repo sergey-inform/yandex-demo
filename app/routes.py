@@ -287,7 +287,7 @@ def birthdays(import_id):
                     for _ in g]
         birthdays[month] = values
 
-    return jsonify({'data': birthdays}, 200)
+    return jsonify({'data': birthdays}), 200
 
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age',
