@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+import logging
 
 # Sometimes it's nice to keep __init__.py clean, but here
 # we follow flask's Application Factories approach. 
@@ -34,6 +35,7 @@ def create_app(test_config=None):
 
     @app.route('/ping')  # undocumented API functionality ;)
     def ping():
+        logging.warn('ping')
         return 'pong'
     
     with app.app_context():
