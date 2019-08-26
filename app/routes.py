@@ -245,6 +245,7 @@ def patch(citizen_id):
     
     citizen = dict(r)
     citizen.pop('import_id')  # remove 'import_id' fields according to spec.
+    citizen.pop('citizen_id')  # remove 'citizen_id' fields according to spec.
     
     return jsonify(citizen), 200
 
