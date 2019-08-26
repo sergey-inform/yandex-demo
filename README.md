@@ -197,4 +197,13 @@ optional arguments:
 }
 ```
 
+Сгенерировать 30 тысяч записей можно так:
+```bash
+./fake_citizens.py -n 30000 -k 10000 > 30k_10k_links.json  # ~20sec
+./fake_citizens.py -n 30000 -k 1000 > 30k_1k_links.json  # ~5sec
+```
+Загрузить их в API можно утилитой [apache benchmark](https://en.wikipedia.org/wiki/ApacheBench):
+```
+ab -n 1 -p 30k_10k_links.json http://127.0.0.1:5000/imports
+```
 
