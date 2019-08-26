@@ -223,18 +223,17 @@ def patch(citizen_id):
     except ForeignKeyViolation:
         return 'corresponging citizen_id does not exist', 400
    
-    db.commit()
-    
-    #FIXME: fast and dirty, but race condition is possible
     cur.execute('SELECT * FROM Citizens_view'
                  ' WHERE import_id = %s and citizen_id = %s',
                     [import_id, citizen_id])
     r = cur.fetchone()
     if not r:
         abort(404, 'No citizen with citizen_id={:d}'.format(citizen_id))
+        
+    db.commit()
     
     citizen = dict(r)
-    citizen.pop('import_id')
+    citizen.pop('import_id')  # remove 'import_id' fields according to spec.
     
     return jsonify(citizen), 200
 
