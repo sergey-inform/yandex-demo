@@ -73,8 +73,10 @@ def test_patch(client,):
     assert b'citizen_id' in r.data
 
     #patch check relatives update
+    r = client.patch(url, data=json.dumps({'relatives':[]}))
+    assert r.status_code == 200
+    logging.debug(r.data.decode())
     
-
     #patch check values updated
     
 
