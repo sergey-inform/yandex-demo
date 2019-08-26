@@ -2,7 +2,7 @@ import os
 import pytest
 
 from app import create_app
-from app.db import get_db, init_db
+from app.db import get_db, init_db, drop_db
 
 #inspired by 
 #https://github.com/pallets/flask/blob/1.0.4/examples/tutorial/tests/conftest.py
@@ -13,6 +13,7 @@ def app():
     _app = create_app( {"TESTING": True, 'DEBUG': True})
 
     with _app.app_context():
+        drop_db()
         init_db()
         
     yield _app

@@ -33,8 +33,18 @@ def close_db(e=None):
         db.close()
 
 
+def drop_db():
+    """Drop all tables."""
+    db = get_db()
+    with current_app.open_resource('db_drop.sql') as f:
+        cursor=db.cursor()
+        cursor.execute(f.read().decode('utf8'))
+        db.commit()
+        logging.info("db dropped")
+
+
 def init_db():
-    """Clear existing data and create new tables."""
+    """Create new tables."""
     db = get_db()
 
     with current_app.open_resource('db.sql') as f:
@@ -42,12 +52,20 @@ def init_db():
         cursor.execute(f.read().decode('utf8'))
         db.commit()
         logging.info("db initialized")
+        
+
+@click.command('drop-db')
+@with_appcontext
+def init_db_command():
+    """Drop all tables."""
+    drop_db()
+    click.echo('Database dropped.')
 
 
 @click.command('init-db')
 @with_appcontext
 def init_db_command():
-    """Clear existing data and create new tables."""
+    """Create new tables."""
     init_db()
     click.echo('Initialized the database.')
 
