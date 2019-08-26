@@ -51,7 +51,6 @@ def test_patch(client,):
     #valid patch
     r = client.patch(url, data=json.dumps(valid_data))
     assert r.status_code == 200
-    logging.debug(r.data.decode())
 
     #patch non-existant
     ne_url = "/imports/{:d}/citizens/{:d}".format(import_id, 99999)
@@ -76,7 +75,7 @@ def test_patch(client,):
     r = client.patch(url, data=json.dumps({'relatives':[]}))
     assert r.status_code == 200
     logging.debug(r.data.decode())
-    
+
     #patch check values updated
 
 
