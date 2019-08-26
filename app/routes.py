@@ -273,8 +273,9 @@ def birthdays(import_id):
     if not res:
         abort(404, 'No such import_id')
     
-    cur.execute('SELECT month::varchar, array_agg(ARRAY[citizen_id, presents]) as id_npres'
-                ' from Birthdays_view'
+    cur.execute('SELECT month::varchar, '
+                '   array_agg(ARRAY[citizen_id, presents]) AS id_npres'
+                ' FROM Birthdays_view'
                 ' WHERE import_id = %s'
                 ' GROUP BY month'
                 , [import_id])
@@ -295,7 +296,7 @@ def birthdays(import_id):
         birthdays[month] = values
 
 
-    # Implementation with itertools.groupby:
+    # Alternative implementation with itertools.groupby:
 
     #~ cur.execute('SELECT month::varchar, citizen_id, presents from Birthdays_view'
                 #~ ' WHERE import_id = %s', [import_id])
