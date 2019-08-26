@@ -274,18 +274,44 @@ def birthdays(import_id):
     if not res:
         abort(404, 'No such import_id')
     
-    cur.execute('SELECT month, citizen_id, presents from Birthdays_view'
+    cur.execute('SELECT month, array_agg(ARRAY[citizen_id, presents]) as id_npres'
+                ' from Birthdays_view'
+                ' GROUP BY month'
                 ' WHERE import_id = %s', [import_id])
+    #  month |   id_npres    
+    # -------+---------------
+    #      4 | {{1,1}}
+    #     11 | {{1,1}}
+    #     12 | {{2,1},{3,1}}
 
     data = cur.fetchall()
 
     birthdays = {str(m):[] for m in range(1,13) }  # 12 months
-    #group data by month
-    for k, g in groupby(data, lambda x: x['month']):
-        month = str(int(k))
-        values =[{"citizen_id": _['citizen_id'], "presents": _['presents']}
-                    for _ in g]
+    
+    for m, id_npres in data:
+        values =[{"citizen_id": _[0], "presents": _[1]}
+                    for _ in id_npres]
         birthdays[month] = values
+
+    # Implementation with groupby:
+    
+    #~ cur.execute('SELECT month, citizen_id, presents from Birthdays_view'
+                #~ ' WHERE import_id = %s', [import_id])
+    #~ #  month | citizen_id | presents 
+    #~ # -------+------------+----------
+    #~ #      4 |          1 |        1
+    #~ #     11 |          1 |        1
+    #~ #     12 |          2 |        1
+    #~ #     12 |          3 |        1
+    #~ data = cur.fetchall()
+    #~ birthdays = {str(m):[] for m in range(1,13) }  # 12 months
+    #~ #group data by month
+    #~ for k, g in groupby(data, lambda x: x['month']):
+        #~ month = str(int(k))
+        #~ values =[{"citizen_id": _['citizen_id'], "presents": _['presents']}
+                    #~ for _ in g]
+                    
+    birthdays[month] = values
 
     return jsonify({'data': birthdays}), 200
 
@@ -314,6 +340,11 @@ def towns_percentile_age(import_id,):
                 ' GROUP BY town',
                 {'import_id': import_id}
                 )
+                
+    #   town  |    age_count    | sum 
+    # --------+-----------------+-----
+    #  Керчь  | {{32,1}}        |   1
+    #  Москва | {{22,1},{32,1}} |   2
 
     percentiles = {"p50": 50, "p75": 75, "p90": 99}
     ret = cur.fetchall()
