@@ -264,7 +264,7 @@ def citizens(import_id):
     return jsonify({'data': citizens}), 200
 
 
-@app.route('/imports/<int:import_id>/birthdays', methods=['GET', ])
+@app.route('/imports/<int:import_id>/citizens/birthdays', methods=['GET', ])
 def birthdays(import_id):
     db = get_db()
     cur = db.cursor(cursor_factory=DictCursor)
