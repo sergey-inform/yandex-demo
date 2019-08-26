@@ -38,6 +38,8 @@ def create_app(test_config=None):
     
     with app.app_context():
         from . import routes
+    
+    app.register_blueprint(routes.imports)
 
     from app import db
     db.init_app(app)

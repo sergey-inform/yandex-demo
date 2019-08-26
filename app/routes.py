@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
+import numpy as np
 
-from flask import (g, request, abort, json)
+from flask import (g, request, abort, json, current_app, Blueprint)
 from flask import current_app as app
 
 from app.db import get_db
@@ -10,7 +11,6 @@ from app.schema_definitions import imports_schema, patch_schema
 
 logger = logging.getLogger('app')
 
-
 from psycopg2.extras import execute_values, DictCursor  #
 from psycopg2.errors import ForeignKeyViolation
 
@@ -18,30 +18,19 @@ def jsonify(x, ensure_ascii=False, sort_keys=False,**kvargs):  # change defaults
     return json.dumps(x, ensure_ascii=ensure_ascii,
                             sort_keys=sort_keys, **kvargs)
 
-@app.route('/test', methods=['GET',])
-def test():
-    if app.config['TESTING']:
-        logger.error('TEST')
-        logger.warning('TEST')
-        logger.info ('TEST')
-        logger.debug('TEST')
-        return 'OK'
-    else:
-        abort(404)
-
-
 def parse_date(s):
     return datetime.strptime(s,"%d.%m.%Y")
 
-
 # Disclaimer: 
 # When you think this code is shitty in some places, 
-# keep in mind that it was written in hurry. 
-# Poor excuse, but...
+# consider that it was written in hurry. 
+
+imports = Blueprint('imports', __name__, 
+                        url_prefix='/imports/<int:import_id>')
 
 @app.route('/imports', methods= ['POST',])
 @expects_valid_json(imports_schema, force=True)
-def imports():
+def imports_():
     citizens = g.data['citizens']
 
     # Prepare for insert
@@ -134,24 +123,30 @@ def imports():
     return jsonify(resp_ok), 201
 
 
-@app.route('/imports/<int:import_id>/citizens/<int:citizen_id>', 
-            methods=['PATCH', ])
+@imports.url_value_preprocessor
+def check_import_id(endpoint, values):
+    g.import_id = values.pop('import_id')
+    
+    db = get_db()
+    cur = db.cursor()
+
+    cur.execute('SELECT * FROM Imports WHERE id = %s', [g.import_id])
+    res = cur.fetchone()
+    if not res:
+        abort(404, 'No such import_id.')
+
+
+@imports.route('/citizens/<int:citizen_id>', methods=['PATCH', ])
 @expects_valid_json(patch_schema, force=True)
-def patch(import_id, citizen_id):
+def patch(citizen_id):
     data = g.data
+    import_id = g.import_id 
+    
     if 'citizen_id' in data:
-        abort(400, "citizen_id can't be patched")
+        abort(400, "citizen_id can't be changed")
 
     db = get_db()
     cur = db.cursor(cursor_factory=DictCursor)
-   
-    #TODO: move to blueprint or decorator \/
-    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
-    r = cur.fetchone()
-    if not r:
-        abort(404, 'No such import_id')
-    
-    #TODO: -----------------------
 
     cur.execute('SELECT * FROM Citizens_view'
                  ' WHERE import_id = %s and citizen_id = %s',
@@ -244,15 +239,12 @@ def patch(import_id, citizen_id):
     return jsonify(citizen), 200
 
 
-@app.route('/imports/<int:import_id>/citizens', methods=['GET',])
-def citizens(import_id):
+@imports.route('/citizens', methods=['GET',])
+def citizens():
+    import_id = g.import_id
+    
     db = get_db()
     cur = db.cursor(cursor_factory=DictCursor)
-
-    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
-    res = cur.fetchone()
-    if not res:
-        abort(404, 'No such import_id')
     
     cur.execute('SELECT * FROM Citizens_view WHERE import_id = %s',
                 [import_id])
@@ -263,15 +255,12 @@ def citizens(import_id):
     return jsonify({'data': citizens}), 200
 
 
-@app.route('/imports/<int:import_id>/citizens/birthdays', methods=['GET', ])
-def birthdays(import_id):
+@imports.route('/citizens/birthdays', methods=['GET', ])
+def birthdays():
+    import_id = g.import_id
+    
     db = get_db()
     cur = db.cursor(cursor_factory=DictCursor)
-
-    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
-    res = cur.fetchone()
-    if not res:
-        abort(404, 'No such import_id')
     
     cur.execute('SELECT month::varchar, '
                 '   array_agg(ARRAY[citizen_id, presents]) AS id_npres'
@@ -318,23 +307,17 @@ def birthdays(import_id):
     return jsonify({'data': birthdays}), 200
 
 
-@app.route('/imports/<int:import_id>/towns/stat/percentile/age',
-    methods=['GET', ])
-def towns_percentile_age(import_id,):
+@imports.route('/towns/stat/percentile/age', methods=['GET', ])
+def towns_percentile_age():
     """
     Returns age percentile per city:
     {"data": [{"town": "Москва", "p50": 35.0, "p75": 47.5, "p99": 59.5},
               {"town": "Питер" , "p50": 45.0, "p75": 52.5, "p99": 97.15}]}
     """
-    import numpy as np
+    import_id = g.import_id
 
     db = get_db()
     cur = db.cursor(cursor_factory=DictCursor)
-
-    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
-    res = cur.fetchone()
-    if not res:
-        abort(404, 'No such import_id')
     
     cur.execute('SELECT town, array_agg( ARRAY[age, "count"]) AS age_count,'
                 '        sum("count")::int as sum '
@@ -370,3 +353,13 @@ def towns_percentile_age(import_id,):
     return jsonify({'data': data}, indent=2) , 200
 
 
+@app.route('/test', methods=['GET',])
+def test():
+    if app.config['TESTING']:
+        logger.error('TEST')
+        logger.warning('TEST')
+        logger.info ('TEST')
+        logger.debug('TEST')
+        return 'OK'
+    else:
+        abort(404)

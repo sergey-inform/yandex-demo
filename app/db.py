@@ -1,12 +1,15 @@
 #TODO: import postgress stuff
-
+import os
 import click
+
 from flask import current_app, g
 from flask.cli import with_appcontext
 
 import psycopg2
 import logging
     
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
+logging.basicConfig(level=LOGLEVEL)
 
 def get_db():
     """Connect to the application's configured database. The connection
@@ -20,7 +23,7 @@ def get_db():
         except psycopg2.DatabaseError as e:
             logging.error(e)
         finally:
-            logging.info('db connected')
+            logging.debug('db connected')
             
     return g.db
 
@@ -31,6 +34,7 @@ def close_db(e=None):
     db = g.pop('db', None)
     if db is not None:
         db.close()
+        logging.debug("db closed")
 
 
 def drop_db():
