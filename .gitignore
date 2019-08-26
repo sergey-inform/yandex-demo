@@ -1,11 +1,13 @@
-__pycache__/
+tmp
 
 *.py[cod]
 *.so
 
 .env/
 env/
+.pytest_cache
+__pycache__/
 
 # Flask stuff:
 instance/
-.webassets-cache
+config.py
