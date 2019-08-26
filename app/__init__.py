@@ -9,10 +9,9 @@ import logging
 
 def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
-    app = Flask(__name__) #FIXME: , instance_relative_config=True)
+    app = Flask(__name__)
     
     app.config.from_mapping(
-#       DB_URL="postgresql://demo@localhost:5432/citizens", #TODO:add parsing
         DB_CONF = {
            "host": "localhost",
            "port": 5432,
@@ -26,7 +25,7 @@ def create_app(test_config=None):
         app.config.update(test_config)
 
     else:
-        app.config.from_pyfile('config.py') #FIXME: , silent=True
+        app.config.from_pyfile('config.py', silent=True)
 
     try:
         os.makedirs(app.instance_path)
