@@ -34,7 +34,7 @@ Demo task for Yandex Backend School Contest '19.
 
 
 ## Развертывание
-В Ubuntu: `apt install git virtualenv gunicorn3`
+В Ubuntu: `apt install git virtualenv`
 
 Чтобы опробовать приложение достаточно склонировать репозиторий в домашнюю директорию: 
 ```bash
