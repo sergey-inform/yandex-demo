@@ -72,7 +72,9 @@ python3 -m pytest tests/
 ## Запуск в качестве сервиса
 Самый простой способ -- запустить приложение с WSGI HTTP-сервером Gunicorn или аналогичным.
 ```
-sudo apt-get install gunicorn3
+cd yandex-demo/
+source .env/bin/activate
+pip3 install gunicorn
 ```
 Для запуска сервиса следует создать отдельного пользователя и постоянную базу данных:
 ```SQL
