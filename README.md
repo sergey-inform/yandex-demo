@@ -58,9 +58,11 @@ create user test with password 'secret';
 CREATE DATABASE test WITH OWNER=test;
 grant all privileges on database test to test;
 ```
-Перед запуском тестов база данных автоматически очищается. 
 
 ### Запуск тестов
+Перед запуском тестов база данных `test` автоматически очищается. 
+
+
 ```
 cd yandex-demo/
 source .env/bin/activate
