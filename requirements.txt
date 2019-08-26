@@ -1,5 +1,6 @@
-fastjsonschema==2.13
 Faker==2.0.0
 Flask==1.1.1
+fastjsonschema==2.13
 psycopg2_binary==2.8.3
+numpy==1.17.0
 pytest==5.1.0
