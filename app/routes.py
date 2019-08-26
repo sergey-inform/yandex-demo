@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from itertools import groupby
 
 from flask import (g, request, abort, json)
 from flask import current_app as app
@@ -274,10 +273,12 @@ def birthdays(import_id):
     if not res:
         abort(404, 'No such import_id')
     
-    cur.execute('SELECT month, array_agg(ARRAY[citizen_id, presents]) as id_npres'
+    cur.execute('SELECT month::varchar, array_agg(ARRAY[citizen_id, presents]) as id_npres'
                 ' from Birthdays_view'
+                ' WHERE import_id = %s'
                 ' GROUP BY month'
-                ' WHERE import_id = %s', [import_id])
+                , [import_id])
+                
     #  month |   id_npres    
     # -------+---------------
     #      4 | {{1,1}}
@@ -288,14 +289,15 @@ def birthdays(import_id):
 
     birthdays = {str(m):[] for m in range(1,13) }  # 12 months
     
-    for m, id_npres in data:
+    for month, id_npres in data:
         values =[{"citizen_id": _[0], "presents": _[1]}
                     for _ in id_npres]
         birthdays[month] = values
 
-    # Implementation with groupby:
-    
-    #~ cur.execute('SELECT month, citizen_id, presents from Birthdays_view'
+
+    # Implementation with itertools.groupby:
+
+    #~ cur.execute('SELECT month::varchar, citizen_id, presents from Birthdays_view'
                 #~ ' WHERE import_id = %s', [import_id])
     #~ #  month | citizen_id | presents 
     #~ # -------+------------+----------
@@ -306,12 +308,11 @@ def birthdays(import_id):
     #~ data = cur.fetchall()
     #~ birthdays = {str(m):[] for m in range(1,13) }  # 12 months
     #~ #group data by month
-    #~ for k, g in groupby(data, lambda x: x['month']):
-        #~ month = str(int(k))
+    #~ from itertools import groupby
+    #~ for month, g in groupby(data, lambda x: x['month']):
         #~ values =[{"citizen_id": _['citizen_id'], "presents": _['presents']}
                     #~ for _ in g]
-                    
-    birthdays[month] = values
+        #~ birthdays[month] = values
 
     return jsonify({'data': birthdays}), 200
 
@@ -337,8 +338,8 @@ def towns_percentile_age(import_id,):
     cur.execute('SELECT town, array_agg( ARRAY[age, "count"]) AS age_count,'
                 '        sum("count")::int as sum '
                 ' FROM towns_age_view WHERE import_id = %(import_id)s '
-                ' GROUP BY town',
-                {'import_id': import_id}
+                ' GROUP BY town'
+                ,{'import_id': import_id}
                 )
                 
     #   town  |    age_count    | sum 
