@@ -2,7 +2,7 @@ import os
 from flask import Flask
 
 # Sometimes it's nice to keep __init__.py clean, but here
-# we stick to flask's Application Factories approach. 
+# we follow flask's Application Factories approach. 
 # https://flask.palletsprojects.com/en/1.1.x/patterns/appfactories/
 
 
@@ -18,7 +18,7 @@ def create_app(test_config=None):
            "user": "test",
            "password": "secret",
            "dbname": "test",
-        }
+        },
         )
 
     if test_config:
