@@ -96,7 +96,7 @@ Description=Gunicorn instance to serve yandex-demo
 After=network.target
 
 [Service]
-User=entrant
+User=nobody
 Group=nogroup
 WorkingDirectory=/home/entrant/yandex-demo
 Environment="PATH=/home/entrant/yandex-demo/.env/bin"
@@ -105,7 +105,7 @@ ExecStart=/home/entrant/yandex-demo/.env/bin/gunicorn --workers 7 --bind 0.0.0.0
 [Install]
 WantedBy=multi-user.target
 ```
-Путь `home/entrant/yandex-demo/` следует заменить на актуальный для вашей системы.
+Путь `home/entrant/yandex-demo/` следует заменить на актуальный для вашей системы. Вместо пользователя `nobody` можно использовать вашу учетную запись, если папка yandex-demo не доступна на чтение другим пользователям.
 
 После этого выполните команды для добавления сервиса в автозапуск и для запуска:
 ```
