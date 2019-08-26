@@ -15,8 +15,9 @@ logger = logging.getLogger('app')
 from psycopg2.extras import execute_values, DictCursor  #
 from psycopg2.errors import ForeignKeyViolation
 
-def jsonify(x, ensure_ascii=False, sort_keys=False):  # change defaults
-    return json.dumps(x, ensure_ascii=ensure_ascii, sort_keys=sort_keys)
+def jsonify(x, ensure_ascii=False, sort_keys=False,**kvargs):  # change defaults
+    return json.dumps(x, ensure_ascii=ensure_ascii,
+                            sort_keys=sort_keys, **kvargs)
 
 @app.route('/test', methods=['GET',])
 def test():
@@ -50,6 +51,8 @@ def imports():
     
     filtered = ('street', 'building', 'apartment', 'name')  #store in `fields`
     
+    now_date = datetime.now()
+
     for c in citizens: 
         citizen_id = c['citizen_id']
         
@@ -59,8 +62,11 @@ def imports():
         # Convert `birth_date` to postgres format, check date is valid
         try:
             birth_date =  parse_date(c['birth_date'])
+            if birth_date >= now_date:
+                raise ValueError('birth_date in future')
+        
         except ValueError:
-            return "wrong birth_date: {:.42}".format(date), 400
+            return "wrong birth_date: {}".format(birth_date), 400
        
         # Prepare relatives 
         relatives_pairs.extend( (citizen_id, rel) for rel in c['relatives'] )
@@ -286,7 +292,48 @@ def birthdays(import_id):
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age',
     methods=['GET', ])
-def agestats(import_id):
-    return '', 501
+def towns_percentile_age(import_id,):
+    """
+    Returns age percentile per city:
+    {"data": [{"town": "Москва", "p50": 35.0, "p75": 47.5, "p99": 59.5},
+              {"town": "Питер" , "p50": 45.0, "p75": 52.5, "p99": 97.15}]}
+    """
+    import numpy as np
+
+    db = get_db()
+    cur = db.cursor(cursor_factory=DictCursor)
+
+    cur.execute('SELECT * FROM Imports WHERE id = %s', [import_id])
+    res = cur.fetchone()
+    if not res:
+        abort(404, 'No such import_id')
+    
+    cur.execute('SELECT town, array_agg( ARRAY[age, "count"]) AS age_count,'
+                '        sum("count")::int as sum '
+                ' FROM towns_age_view WHERE import_id = %(import_id)s '
+                ' GROUP BY town',
+                {'import_id': import_id}
+                )
+
+    percentiles = {"p50": 50, "p75": 75, "p90": 99}
+    ret = cur.fetchall()
+   
+    data = []
+     
+    for r in ret:
+        # Since numpy.percentile finds percentile roughly, unfold entire array
+        # and calculate wrong values instead of calculating precise ones
+        # on hisogram `age_count`, wich we already have.
+
+        unfold = []
+        for k,v in r['age_count']:
+            unfold.extend( [k] * v)  # [k,k,k,....]
+
+        vals = { k: np.percentile(unfold, v) 
+                    for k,v in percentiles.items()}
+        
+        data.append( { 'town': r['town'], ** vals })
+
+    return jsonify({'data': data}, indent=2) , 200
 
 

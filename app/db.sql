@@ -102,5 +102,20 @@ WHERE R.rel = C.citizen_id
 GROUP BY R.import_id, "month", R.citizen_id
 ORDER BY "month";
 
+
+CREATE OR REPLACE FUNCTION utc_age(param_date DATE)
+	RETURNS int 
+AS $$ SELECT EXTRACT('YEAR' FROM age(NOW() at time zone 'UTC', param_date))::int $$
+LANGUAGE SQL;
+
+
+CREATE OR REPLACE VIEW Towns_age_view AS
+SELECT import_id, town, utc_age(birth_date) as "age",
+       count(*) as "count"
+FROM Citizens
+GROUP BY import_id, town, age 
+ORDER BY town, age;
+
+
 /*
 select town, array_agg( ARRAY[age, count]) as age_count from (select town, date_part('year', age( '2019-08-25', birth_date)) as "age", count(*) from  Citizens where import_id = 9  group by town, age order by town, age)as x group by town;*/
