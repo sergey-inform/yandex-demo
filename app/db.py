@@ -56,7 +56,7 @@ def init_db():
 
 @click.command('drop-db')
 @with_appcontext
-def init_db_command():
+def drop_db_command():
     """Drop all tables."""
     drop_db()
     click.echo('Database dropped.')
@@ -76,3 +76,4 @@ def init_app(app):
     """
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+    app.cli.add_command(drop_db_command)
