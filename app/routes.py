@@ -183,19 +183,12 @@ def patch(citizen_id):
     # Update `citizen` fields
     fields_update =  { k: data[k] for k in filtered
                     if k in data and citizen[k] != data[k] }
-    # Prepare `citizen` relatives
-    rel_citizen = set(citizen['relatives'])
-    rel_data = set(data['relatives']) if 'relatives' in data else set()
 
-    rel_del = [_ for _ in rel_citizen - rel_data]
-    rel_ins_pairs = [sorted((citizen_id, _)) for _ in rel_data - rel_citizen]
-    
     placeholders = {
                     **columns_update,
                     'fields': jsonify( fields_update or {} ), 
                     'import_id': import_id,
                     'citizen_id': citizen_id,
-                    'rel_del': tuple(rel_del), 
                     }
     
     if columns_update or fields_update:  # Update `citizen` columns and fields
@@ -210,43 +203,58 @@ def patch(citizen_id):
         #logger.info(sql.decode())
         cur.execute(sql)
 
-    if placeholders['rel_del']: # Delete `citizen` relatives
-        sql = cur.mogrify('DELETE from Relatives WHERE'
-                    ' import_id = %(import_id)s'
-                    ' AND ('
-                    '      (low in %(rel_del)s AND high = %(citizen_id)s)'
-                    '   OR (high in %(rel_del)s AND low = %(citizen_id)s)'
-                    ')',
-                    placeholders
-                    )
+    # Prepare `citizen` relatives
+    
+    if 'relatives' in data:
+        rel_citizen = set(citizen['relatives'])
+        rel_data = set(data['relatives'])
 
+        rel_del = [_ for _ in rel_citizen - rel_data]
+        rel_ins_pairs = [sorted((citizen_id, _)) 
+                                for _ in rel_data - rel_citizen]
+
+        if rel_del: # Delete `citizen` relatives
+            sql = cur.mogrify('DELETE from Relatives WHERE'
+                        ' import_id = %(import_id)s'
+                        ' AND ('
+                        '      (low in %(rel_del)s AND high = %(citizen_id)s)'
+                        '   OR (high in %(rel_del)s AND low = %(citizen_id)s)'
+                        ')',
+                        {
+                            'rel_del': tuple(rel_del), 
+                            'import_id': import_id,
+                            'citizen_id': citizen_id
+                        }
+                        )
         #logger.info(sql.decode())
         cur.execute(sql)
     
-    try:
-        if rel_ins_pairs: # Create new `citizen` relatives
-            for low, high in rel_ins_pairs:
-                cur.execute('INSERT INTO Relatives' \
-                            ' (import_id, low, high)' \
-                            ' VALUES (%s, %s, %s)',
-                            (import_id, low, high)
-                            )
-    except ForeignKeyViolation:
-        return 'citizen with such id does not exist', 400
-   
+        try:
+            if rel_ins_pairs: # Create new `citizen` relatives
+                for low, high in rel_ins_pairs:
+                    cur.execute('INSERT INTO Relatives' \
+                                ' (import_id, low, high)' \
+                                ' VALUES (%s, %s, %s)',
+                                (import_id, low, high)
+                                )
+        except ForeignKeyViolation:
+            return 'citizen with such id does not exist', 400
+    
+        #
+
     cur.execute('SELECT * FROM Citizens_view'
                  ' WHERE import_id = %s and citizen_id = %s'
                 ,[import_id, citizen_id])
     r = cur.fetchone()
     if not r:
         abort(404, 'No citizen with citizen_id={:d}'.format(citizen_id))
-        
+            
     db.commit()  # manually commit db transaction
     
     citizen = dict(r)
     citizen.pop('import_id')  # remove 'import_id' fields according to spec.
     
-    return jsonify(citizen), 200
+    return jsonify({'data':citizen}), 200
 
 
 @imports.route('/citizens', methods=['GET',])
