@@ -37,6 +37,7 @@ def test_patch(client,):
         pytest.skip("import_id is {}".format(import_id))
     
     url = "/imports/{:d}/citizens/{:d}".format(import_id, 3)
+    url_1 = "/imports/{:d}/citizens/{:d}".format(import_id, 1)
     assert client.get(url).status_code == 405  # Method not allowed
     
     valid_data = {
@@ -48,35 +49,38 @@ def test_patch(client,):
 	"relatives": [1]
 	}
 
+    def do(url, x): return client.patch( url, data=json.dumps(x))
+    
     #valid patch
-    r = client.patch(url, data=json.dumps(valid_data))
+    r = do(url, valid_data)
     assert r.status_code == 200
 
     #patch non-existant
     ne_url = "/imports/{:d}/citizens/{:d}".format(import_id, 99999)
-    r = client.patch(ne_url, data=json.dumps(valid_data))
+    r = do(ne_url, valid_data)
     assert r.status_code == 404
 
     #patch with wrong field
     invalid_data = valid_data.copy()
     invalid_data['no_such_field'] = 1
-    r = client.patch(url, data=json.dumps(invalid_data))
+    r = do(url, invalid_data)
     assert r.status_code == 400
-    assert b'data must contain only specified properties' in r.data
+    assert b'only specified properties' in r.data
 
     #patch with citizen_id
     invalid_data = valid_data.copy()
     invalid_data['citizen_id'] = 4
-    r = client.patch(url, data=json.dumps(invalid_data))
+    r = do(url,invalid_data)
     assert r.status_code == 400
     assert b'citizen_id' in r.data
 
     #patch check relatives update
-    r = client.patch(url, data=json.dumps({'relatives':[]}))
+    r = do(url,{'relatives':[]})
     assert r.status_code == 200
-    logging.debug(r.data.decode())
+    r1 = do(url_1,{'name':'John Smith'})
+    r1data = json.loads(r1.data)
+    assert r1data['data']['relatives'] == [2]
 
-    #patch check values updated
 
 
 
